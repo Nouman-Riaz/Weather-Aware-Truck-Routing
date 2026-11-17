@@ -15,13 +15,14 @@ from django.conf import settings
 from django.core.cache import cache
 
 from .geo import Coord
-from .http import get_json
+from .http import UpstreamError, get_json
 
 logger = logging.getLogger(__name__)
 
 CELL_DEG = 0.1
 BATCH_SIZE = 100
 CACHE_SECONDS = 30 * 60
+HOST_DOWN_SECONDS = 5 * 60
 FORECAST_DAYS = 16  # Open-Meteo forecast horizon
 VARIABLES = ("wind_speed_10m", "wind_gusts_10m", "rain", "showers", "snowfall", "temperature_2m", "weather_code")
 
@@ -77,13 +78,33 @@ def _fetch_batch(cells: list[tuple[float, float]], first: date, last: date) -> d
         "precipitation_unit": "inch",
         "temperature_unit": "fahrenheit",
     }
-    base = settings.OPEN_METEO_URL
     if settings.OPEN_METEO_API_KEY:
         params["apikey"] = settings.OPEN_METEO_API_KEY
-        base = base.replace("://api.", "://customer-api.")
-    data = get_json("weather", f"{base}/v1/forecast", params=params, timeout=30)
+    data = _get_forecast(params)
     results = data if isinstance(data, list) else [data]
     return {cell: result["hourly"] for cell, result in zip(cells, results)}
+
+
+def _hosts() -> list[str]:
+    if settings.OPEN_METEO_API_KEY:
+        return [settings.OPEN_METEO_URL.replace("://api.", "://customer-api.")]
+    hosts = [settings.OPEN_METEO_URL, settings.OPEN_METEO_FALLBACK_URL]
+    # Skip a host that failed recently so every request doesn't wait on its timeout.
+    healthy = [h for h in hosts if not cache.get(f"wx-down:{h}")]
+    return healthy or hosts
+
+
+def _get_forecast(params: dict) -> dict | list:
+    """Request from the primary host, falling back to the next one if it is unreachable."""
+    error: UpstreamError | None = None
+    for host in _hosts():
+        try:
+            return get_json("weather", f"{host}/v1/forecast", params=params, timeout=30)
+        except UpstreamError as exc:
+            logger.warning("weather host %s failed: %s", host, exc.message)
+            cache.set(f"wx-down:{host}", True, HOST_DOWN_SECONDS)
+            error = exc
+    raise error
 
 
 def _split_days(hourly: dict) -> dict[date, list[tuple | None]]:

@@ -1,4 +1,5 @@
-import maplibregl, { type ExpressionSpecification, type GeoJSONSource, type MapLayerMouseEvent } from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
+import type { ExpressionSpecification, GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl'
 import { memo, useEffect, useRef, useState } from 'react'
 import { formatDuration } from '../lib/format'
 import { LAYER_SCALE, LEVEL_COLOR, LEVEL_LABEL } from '../lib/risk'

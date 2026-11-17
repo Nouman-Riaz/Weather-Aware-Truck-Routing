@@ -99,3 +99,31 @@ def test_heatmap_returns_49_hours_per_point():
     assert len(data["hours"]) == 49
     assert 0 < len(data["points"]) <= 220
     assert all(len(row) == 49 for row in data["risk"])
+
+
+def test_weather_falls_back_to_secondary_host():
+    from datetime import datetime, timezone as tz
+
+    from routing.services import weather
+    from routing.services.http import UpstreamError
+
+    now = datetime.now(tz.utc).replace(minute=0, second=0, microsecond=0)
+    hourly = {
+        "time": [now.strftime("%Y-%m-%dT%H:00")],
+        **{v: [1.0] for v in weather.VARIABLES},
+    }
+    calls = []
+
+    def fake_get_json(service, url, params=None, timeout=20):
+        calls.append(url)
+        if "historical-forecast" not in url:
+            raise UpstreamError("weather", "connect timeout")
+        return {"hourly": hourly}
+
+    with mock.patch.object(weather, "get_json", side_effect=fake_get_json):
+        series = weather.get_series([(-87.6, 41.8)], now, now)
+        assert weather.at(series[0], now).wind_mph == 1.0
+        # The failed primary is skipped on the next request.
+        cache.delete(f"wx:-87.6:41.8:{now.date().isoformat()}")
+        weather.get_series([(-87.6, 41.8)], now, now)
+    assert ["historical-forecast" in u for u in calls] == [False, True, True]

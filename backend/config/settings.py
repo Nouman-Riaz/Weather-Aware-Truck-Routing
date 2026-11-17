@@ -73,6 +73,8 @@ TIME_ZONE = "UTC"
 OSRM_URL = os.environ.get("OSRM_URL", "https://router.project-osrm.org")
 PHOTON_URL = os.environ.get("PHOTON_URL", "https://photon.komoot.io")
 OPEN_METEO_URL = os.environ.get("OPEN_METEO_URL", "https://api.open-meteo.com")
+# Same forecast data served from a separate host; used automatically when the primary is unreachable.
+OPEN_METEO_FALLBACK_URL = os.environ.get("OPEN_METEO_FALLBACK_URL", "https://historical-forecast-api.open-meteo.com")
 OPEN_METEO_API_KEY = os.environ.get("OPEN_METEO_API_KEY", "")
 HTTP_USER_AGENT = os.environ.get("HTTP_USER_AGENT", "weather-aware-truck-routing/1.0")
 

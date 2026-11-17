@@ -73,6 +73,10 @@ routes ─► corridor grid (≤220 points) ─► 49 hourly forecasts ─► he
 - **Smooth slider:** moving the slider only swaps the MapLibre `heatmap-weight` expression. There is no data reload and no re-tiling. Fractional hours blend the two nearest forecast hours, so playback is smooth.
 - **Colours:** layers are scaled using the same thresholds as the risk table, so heatmap colours match the risk legend.
 
+### Resilience
+- External calls have a 5 s connect timeout and do not wait on "Retry-After" headers, so a slow or rate-limiting provider produces a clear error instead of a hung request.
+- If Open-Meteo's main forecast host (`api.open-meteo.com`) is unreachable, the app switches to `historical-forecast-api.open-meteo.com`, which serves the same forecast data. A failed host is skipped for 5 minutes.
+
 ### Performance
 - Forecasts are cached for 30 minutes per ~11 km cell per day. Routes and checkpoints share these cells.
 - Routes are cached for 1 hour.
@@ -88,7 +92,7 @@ routes ─► corridor grid (≤220 points) ─► 49 hourly forecasts ─► he
 | Weather | [Open-Meteo](https://open-meteo.com/) forecast API |
 | Basemap | [OpenFreeMap](https://openfreemap.org/) vector tiles |
 
-All the service URLs can be changed with environment variables (`OSRM_URL`, `PHOTON_URL`, `OPEN_METEO_URL`, `OPEN_METEO_API_KEY`).
+All the service URLs can be changed with environment variables (`OSRM_URL`, `PHOTON_URL`, `OPEN_METEO_URL`, `OPEN_METEO_FALLBACK_URL`, `OPEN_METEO_API_KEY`).
 
 ## Running locally
 
