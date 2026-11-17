@@ -6,6 +6,8 @@ export default defineConfig({
   server: {
     proxy: { '/api': 'http://localhost:8000' },
   },
+  // MapLibre's worker is an ES module.
+  worker: { format: 'es' },
   build: {
     chunkSizeWarningLimit: 1200,
   },

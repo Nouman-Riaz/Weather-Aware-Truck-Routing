@@ -1,5 +1,8 @@
 import * as maplibregl from 'maplibre-gl'
 import type { ExpressionSpecification, GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl'
+// MapLibre 6 resolves its worker with a runtime URL that bundlers can't see, so let Vite bundle the
+// worker (with its shared chunk) and hand MapLibre the emitted URL.
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { memo, useEffect, useRef, useState } from 'react'
 import { formatDuration } from '../lib/format'
 import { LAYER_SCALE, LEVEL_COLOR, LEVEL_LABEL } from '../lib/risk'
@@ -16,6 +19,8 @@ import {
   truckPosition,
 } from './geometry'
 import { checkpointPopup, stopPopup } from './popup'
+
+maplibregl.setWorkerUrl(workerUrl)
 
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron'
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
